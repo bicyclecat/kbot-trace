@@ -320,8 +320,8 @@ webhook:
     # This should be uncommented and set as a default by the chart once we graduate
     # the apiVersion of WebhookConfiguration past v1alpha1.
     
-    # CUSTOM uncommented
-    securePort: 10250
+    # CUSTOM uncommented / commented back
+    # securePort: 10250
 
   # CUSTOM: uncommented
   # strategy: {}
