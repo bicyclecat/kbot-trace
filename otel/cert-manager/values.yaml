@@ -321,7 +321,7 @@ webhook:
     # the apiVersion of WebhookConfiguration past v1alpha1.
     
     # CUSTOM uncommented / commented back
-    securePort: 10250
+    securePort: 10251
 
   # CUSTOM: uncommented
   # strategy: {}
