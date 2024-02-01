@@ -2,7 +2,7 @@ APP:=kbot-trace
 REGISTRY=docker.io
 REPOSITORY=bicyclecat
 GIT_REPOSITORY=bicyclecat
-VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short otel)
+VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
 
 TARGETOS=linux
 TARGETARCH=amd64
