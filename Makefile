@@ -1,4 +1,4 @@
-APP:=$(shell basename -s .git $(shell git remote get-url origin))
+APP:=kbot-trace
 REGISTRY=docker.io
 REPOSITORY=bicyclecat
 GIT_REPOSITORY=bicyclecat
@@ -20,7 +20,7 @@ get-dependencies:
 	go get
 
 build: format get-dependencies
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o kbot -ldflags "-X="github.com/${GIT_REPOSITORY}/${APP}/cmd.appVersion=${VERSION}
+	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o ${APP} -ldflags "-X="github.com/${GIT_REPOSITORY}/${APP}/cmd.appVersion=${VERSION}
 
 image:
 	docker build . -t ${REGISTRY}/${REPOSITORY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} --build-arg TARGETOS=${TARGETOS} --build-arg TARGETARCH=${TARGETARCH}
