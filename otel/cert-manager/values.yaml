@@ -323,11 +323,13 @@ webhook:
     # CUSTOM uncommented
     securePort: 10250
 
-  strategy: {}
-    # type: RollingUpdate
-    # rollingUpdate:
-    #   maxSurge: 0
-    #   maxUnavailable: 1
+  # CUSTOM: uncommented
+  # strategy: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+       maxSurge: 0
+       maxUnavailable: 1
 
   # Pod Security Context to be set on the webhook component Pod
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
