@@ -187,7 +187,8 @@ kubeRBACProxy:
 admissionWebhooks:
   create: true
   servicePort: 443
-  failurePolicy: Fail
+  # CUSTOM: Fail -> Ignore
+  failurePolicy: Ignore
   secretName: ""
 
   ## Defines the sidecar injection logic in Pods.
