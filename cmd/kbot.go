@@ -15,16 +15,21 @@ import (
 	"github.com/hirosassa/zerodriver"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
 var (
-	// TeleToken bot
+	// TeleToken bot topsecret data
 	TeleToken = os.Getenv("TELE_TOKEN")
 	// MetricsHost exporter host:port
 	MetricsHost = os.Getenv("METRICS_HOST")
+	// TracesHost exporter
+	TraceHost = os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 )
 
 // Initialize OpenTelemetry
@@ -36,6 +41,15 @@ func initMetrics(ctx context.Context) {
 		otlpmetricgrpc.WithEndpoint(MetricsHost),
 		otlpmetricgrpc.WithInsecure(),
 	)
+
+	// Create a new OTLP Trace gRPC exporter with the specified endpoint and options
+	traceExporter, _ := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(TraceHost), otlptracegrpc.WithInsecure())
+
+	// Create a new TracerProvider with the specified exporter
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(traceExporter),
+	)
+	otel.SetTracerProvider(tp)
 
 	// Define the resource with attributes that are common to all metrics.
 	// labels/tags/resources that are common to all metrics.
@@ -111,7 +125,15 @@ to quickly create a Cobra application.`,
 			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
 
 			payload := m.Message().Payload
-			pmetrics(context.Background(), payload)
+
+			// Create tracer
+			tr := otel.Tracer("telegram-bot-tracer")
+
+			// Create span for every text message
+			ctx, span := tr.Start(context.Background(), "telegram-bot-message-processing")
+			defer span.End()
+
+			pmetrics(ctx, payload)
 
 			switch payload {
 			case "hello":

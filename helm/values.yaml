@@ -20,3 +20,4 @@ securityContext:
   privileged: true
 env:
   metricsHost: "otel-collector.monitoring.svc:4317"
+  traceHost: "otel-collector.monitoring.svc:4318"
