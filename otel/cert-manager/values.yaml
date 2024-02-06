@@ -51,7 +51,7 @@ global:
     # retryPeriod: 15s
 
 # CUSTOM false -> true
-installCRDs: true
+installCRDs: false
 replicaCount: 1
 
 strategy: {}
