@@ -845,23 +845,13 @@ write:
   # -- Affinity for write pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
   
-  # CUSTOM podAntiAffinity: {}
-#  affinity: {}
   affinity: |
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchLabels:
-              - loki
+              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
           topologyKey: kubernetes.io/hostname
-
-#  affinity: |
-#    podAntiAffinity:
-#      requiredDuringSchedulingIgnoredDuringExecution:
-#        - labelSelector:
-#            matchLabels:
-#              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
-#          topologyKey: kubernetes.io/hostname
 
 
   # -- DNS config for write pods
