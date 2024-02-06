@@ -735,7 +735,10 @@ monitoring:
     # -- DNS config for canary pods
     dnsConfig: {}
     # -- Node selector for canary pods
-    nodeSelector: {}
+    # CUSTOM: linux
+    # nodeSelector: {}
+    nodeSelector:
+      kubernetes.io/os: linux
     # -- Tolerations for canary pods
     tolerations: []
     # -- The name of the PriorityClass for loki-canary pods
@@ -864,7 +867,10 @@ write:
   # -- DNS config for write pods
   dnsConfig: {}
   # -- Node selector for write pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Topology Spread Constraints for write pods
   topologySpreadConstraints: []
   # -- Tolerations for write pods
@@ -880,7 +886,7 @@ write:
     # -- Enable StatefulSetAutoDeletePVC feature
     enableStatefulSetAutoDeletePVC: false
     # -- Size of persistent disk
-    size: 10Gi
+    size: 1Gi
     # -- Storage class to be used.
     # If defined, storageClassName: <storageClass>.
     # If set to "-", storageClassName: "", which disables dynamic provisioning.
@@ -950,7 +956,10 @@ tableManager:
   # -- DNS config table-manager pods
   dnsConfig: {}
   # -- Node selector for table-manager pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Tolerations for table-manager pods
   tolerations: []
   # -- Enable deletes by retention
@@ -1042,7 +1051,10 @@ read:
   # -- DNS config for read pods
   dnsConfig: {}
   # -- Node selector for read pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Topology Spread Constraints for read pods
   topologySpreadConstraints: []
   # -- Tolerations for read pods
@@ -1145,7 +1157,10 @@ backend:
   # -- DNS config for backend pods
   dnsConfig: {}
   # -- Node selector for backend pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Topology Spread Constraints for backend pods
   topologySpreadConstraints: []
   # -- Tolerations for backend pods
@@ -1239,7 +1254,10 @@ singleBinary:
   # -- DNS config for single binary pods
   dnsConfig: {}
   # -- Node selector for single binary pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Tolerations for single binary pods
   tolerations: []
   persistence:
@@ -1410,7 +1428,10 @@ gateway:
   # -- DNS config for gateway pods
   dnsConfig: {}
   # -- Node selector for gateway pods
-  nodeSelector: {}
+  # CUSTOM: linux
+  # nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/os: linux
   # -- Topology Spread Constraints for gateway pods
   topologySpreadConstraints: []
   # -- Tolerations for gateway pods
