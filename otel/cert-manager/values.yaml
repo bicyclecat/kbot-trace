@@ -50,8 +50,8 @@ global:
     # renewal of a leadership.
     # retryPeriod: 15s
 
-# CUSTOM false 
-installCRDs: false
+# CUSTOM false -> true
+installCRDs: true
 replicaCount: 1
 
 strategy: {}
