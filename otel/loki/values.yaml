@@ -852,7 +852,7 @@ write:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchLabels:
-              - 
+              - loki
           topologyKey: kubernetes.io/hostname
 
 #  affinity: |
