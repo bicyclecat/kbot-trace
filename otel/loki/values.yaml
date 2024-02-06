@@ -912,20 +912,23 @@ tableManager:
   terminationGracePeriodSeconds: 30
   # -- Affinity for table-manager pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              {{- include "loki.tableManagerSelectorLabels" . | nindent 10 }}
-          topologyKey: kubernetes.io/hostname
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                {{- include "loki.tableManagerSelectorLabels" . | nindent 12 }}
-            topologyKey: failure-domain.beta.kubernetes.io/zone
+  
+  # CUSTOM: {}
+  affinity: {}
+  #affinity: |
+  #  podAntiAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      - labelSelector:
+  #          matchLabels:
+  #            {{- include "loki.tableManagerSelectorLabels" . | nindent 10 }}
+  #        topologyKey: kubernetes.io/hostname
+  #    preferredDuringSchedulingIgnoredDuringExecution:
+  #      - weight: 100
+  #        podAffinityTerm:
+  #          labelSelector:
+  #            matchLabels:
+  #              {{- include "loki.tableManagerSelectorLabels" . | nindent 12 }}
+  #          topologyKey: failure-domain.beta.kubernetes.io/zone
   # -- DNS config table-manager pods
   dnsConfig: {}
   # -- Node selector for table-manager pods
@@ -1011,13 +1014,15 @@ read:
   terminationGracePeriodSeconds: 30
   # -- Affinity for read pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              {{- include "loki.readSelectorLabels" . | nindent 10 }}
-          topologyKey: kubernetes.io/hostname
+  # CUSTOM: {}
+  affinity: {}
+  #affinity: |
+  #  podAntiAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      - labelSelector:
+  #          matchLabels:
+  #            {{- include "loki.readSelectorLabels" . | nindent 10 }}
+  #        topologyKey: kubernetes.io/hostname
   # -- DNS config for read pods
   dnsConfig: {}
   # -- Node selector for read pods
@@ -1114,13 +1119,15 @@ backend:
   terminationGracePeriodSeconds: 300
   # -- Affinity for backend pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              {{- include "loki.backendSelectorLabels" . | nindent 10 }}
-          topologyKey: kubernetes.io/hostname
+  # CUSTOM: {}
+  affinity: {}
+  #affinity: |
+  #  podAntiAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      - labelSelector:
+  #          matchLabels:
+  #            {{- include "loki.backendSelectorLabels" . | nindent 10 }}
+  #        topologyKey: kubernetes.io/hostname
   # -- DNS config for backend pods
   dnsConfig: {}
   # -- Node selector for backend pods
@@ -1208,13 +1215,15 @@ singleBinary:
   terminationGracePeriodSeconds: 30
   # -- Affinity for single binary pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              {{- include "loki.singleBinarySelectorLabels" . | nindent 10 }}
-          topologyKey: kubernetes.io/hostname
+  # CUSTOM: {}
+  affinity: {}
+  #affinity: |
+  #  podAntiAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      - labelSelector:
+  #          matchLabels:
+  #            {{- include "loki.singleBinarySelectorLabels" . | nindent 10 }}
+  #        topologyKey: kubernetes.io/hostname
   # -- DNS config for single binary pods
   dnsConfig: {}
   # -- Node selector for single binary pods
@@ -1374,13 +1383,15 @@ gateway:
   terminationGracePeriodSeconds: 30
   # -- Affinity for gateway pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              {{- include "loki.gatewaySelectorLabels" . | nindent 10 }}
-          topologyKey: kubernetes.io/hostname
+  # CUSTOM: {}
+  affinity: {}
+  #affinity: |
+  #  podAntiAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      - labelSelector:
+  #          matchLabels:
+  #            {{- include "loki.gatewaySelectorLabels" . | nindent 10 }}
+  #        topologyKey: kubernetes.io/hostname
   # -- DNS config for gateway pods
   dnsConfig: {}
   # -- Node selector for gateway pods
