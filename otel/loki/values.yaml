@@ -36,7 +36,7 @@ loki:
       path: /ready
       port: http-metrics
     initialDelaySeconds: 30
-    timeoutSeconds: 1
+    timeoutSeconds: 5
   image:
     # -- The Docker registry
     registry: docker.io
@@ -244,7 +244,7 @@ loki:
     tracing:
       enabled: {{ .Values.loki.tracing.enabled }}
   # Should authentication be enabled
-  auth_enabled: true
+  auth_enabled: false
   # -- memberlist configuration (overrides embedded default)
   memberlistConfig: {}
   # -- Extra memberlist configuration
@@ -265,9 +265,13 @@ loki:
   runtimeConfig: {}
   # -- Check https://grafana.com/docs/loki/latest/configuration/#common_config for more info on how to provide a common configuration
   commonConfig:
-    path_prefix: /tmp/loki
+# CUSTOM /tmp/loki -> /var/loki
+    path_prefix: /var/loki
     replication_factor: 1
-    compactor_address: '{{ include "loki.compactorAddress" . }}'
+
+    # CUSTOM 'loki'
+    compactor_address: 'loki'
+    # compactor_address: '{{ include "loki.compactorAddress" . }}'
   # -- Storage config. Providing this will automatically populate all necessary storage configs in the templated config.
   storage:
     bucketNames:
@@ -321,8 +325,9 @@ loki:
       connect_timeout: null
       request_timeout: null
     filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
+      # CUSTOM tmp -> var
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
   # -- Configure memcached as an external cache for chunk and results cache. Disabled by default
   # must enable and specify a host for each cache you would like to use.
   memcached:
@@ -342,7 +347,7 @@ loki:
   # schemaConfig: {}
   schemaConfig:
     configs:
-      - from: 2020-10-24
+      - from: 2022-01-11
         store: boltdb-shipper
         object_store: filesystem
         schema: v11
@@ -367,7 +372,9 @@ loki:
   # --  Optional compactor configuration
   compactor: {}
   # --  Optional analytics configuration
-  analytics: {}
+  # analytics: {}
+  analytics:
+    reporting_enabled: false
   # --  Optional querier configuration
   querier: {}
   # --  Optional ingester configuration
@@ -376,9 +383,13 @@ loki:
   index_gateway:
     mode: ring
   frontend:
-    scheduler_address: '{{ include "loki.querySchedulerAddress" . }}'
+    # CUSTOM ""
+    scheduler_address: ""
+    # scheduler_address: '{{ include "loki.querySchedulerAddress" . }}'
   frontend_worker:
-    scheduler_address: '{{ include "loki.querySchedulerAddress" . }}'
+    # CUSTOM 
+    scheduler_address: ""
+    # scheduler_address: '{{ include "loki.querySchedulerAddress" . }}'
   # -- Optional distributor configuration
   distributor: {}
   # -- Enable tracing
@@ -557,7 +568,7 @@ rbac:
 test:
   enabled: true
   # -- Address of the prometheus server to query for the test
-  prometheusAddress: "http://{{ .Release.Name }}-prometheus-server:9090"
+  prometheusAddress: "http://prometheus-server:9090"
   # -- Number of times to retry the test before failing
   timeout: 1m
   # -- Additional labels for the test pods
@@ -831,8 +842,16 @@ write:
   # -- Affinity for write pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
   
-  # CUSTOM: commented
-  affinity: {}
+  # CUSTOM podAntiAffinity: {}
+#  affinity: {}
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              - 
+          topologyKey: kubernetes.io/hostname
+
 #  affinity: |
 #    podAntiAffinity:
 #      requiredDuringSchedulingIgnoredDuringExecution:
@@ -840,6 +859,8 @@ write:
 #            matchLabels:
 #              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
 #          topologyKey: kubernetes.io/hostname
+
+
   # -- DNS config for write pods
   dnsConfig: {}
   # -- Node selector for write pods
@@ -912,23 +933,20 @@ tableManager:
   terminationGracePeriodSeconds: 30
   # -- Affinity for table-manager pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  
-  # CUSTOM: {}
-  affinity: {}
-  #affinity: |
-  #  podAntiAffinity:
-  #    requiredDuringSchedulingIgnoredDuringExecution:
-  #      - labelSelector:
-  #          matchLabels:
-  #            {{- include "loki.tableManagerSelectorLabels" . | nindent 10 }}
-  #        topologyKey: kubernetes.io/hostname
-  #    preferredDuringSchedulingIgnoredDuringExecution:
-  #      - weight: 100
-  #        podAffinityTerm:
-  #          labelSelector:
-  #            matchLabels:
-  #              {{- include "loki.tableManagerSelectorLabels" . | nindent 12 }}
-  #          topologyKey: failure-domain.beta.kubernetes.io/zone
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.tableManagerSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                {{- include "loki.tableManagerSelectorLabels" . | nindent 12 }}
+            topologyKey: failure-domain.beta.kubernetes.io/zone
   # -- DNS config table-manager pods
   dnsConfig: {}
   # -- Node selector for table-manager pods
@@ -1014,15 +1032,13 @@ read:
   terminationGracePeriodSeconds: 30
   # -- Affinity for read pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  # CUSTOM: {}
-  affinity: {}
-  #affinity: |
-  #  podAntiAffinity:
-  #    requiredDuringSchedulingIgnoredDuringExecution:
-  #      - labelSelector:
-  #          matchLabels:
-  #            {{- include "loki.readSelectorLabels" . | nindent 10 }}
-  #        topologyKey: kubernetes.io/hostname
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.readSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
   # -- DNS config for read pods
   dnsConfig: {}
   # -- Node selector for read pods
@@ -1119,15 +1135,13 @@ backend:
   terminationGracePeriodSeconds: 300
   # -- Affinity for backend pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  # CUSTOM: {}
-  affinity: {}
-  #affinity: |
-  #  podAntiAffinity:
-  #    requiredDuringSchedulingIgnoredDuringExecution:
-  #      - labelSelector:
-  #          matchLabels:
-  #            {{- include "loki.backendSelectorLabels" . | nindent 10 }}
-  #        topologyKey: kubernetes.io/hostname
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.backendSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
   # -- DNS config for backend pods
   dnsConfig: {}
   # -- Node selector for backend pods
@@ -1215,15 +1229,13 @@ singleBinary:
   terminationGracePeriodSeconds: 30
   # -- Affinity for single binary pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  # CUSTOM: {}
-  affinity: {}
-  #affinity: |
-  #  podAntiAffinity:
-  #    requiredDuringSchedulingIgnoredDuringExecution:
-  #      - labelSelector:
-  #          matchLabels:
-  #            {{- include "loki.singleBinarySelectorLabels" . | nindent 10 }}
-  #        topologyKey: kubernetes.io/hostname
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.singleBinarySelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
   # -- DNS config for single binary pods
   dnsConfig: {}
   # -- Node selector for single binary pods
@@ -1293,18 +1305,20 @@ ingress:
 # Configuration for the memberlist service
 memberlist:
   service:
-    publishNotReadyAddresses: false
+    # CUSTOM false -> true
+    publishNotReadyAddresses: true
 # Configuration for the gateway
 gateway:
   # -- Specifies whether the gateway should be enabled
-  enabled: true
+  # CUSTOM true -> false
+  enabled: false
   # -- Number of replicas for the gateway
   replicas: 1
   # -- Enable logging of 2xx and 3xx HTTP requests
   verboseLogging: true
   autoscaling:
     # -- Enable autoscaling for the gateway
-    enabled: false
+    enabled: true
     # -- Minimum autoscaling replicas for the gateway
     minReplicas: 1
     # -- Maximum autoscaling replicas for the gateway
@@ -1383,15 +1397,16 @@ gateway:
   terminationGracePeriodSeconds: 30
   # -- Affinity for gateway pods. Passed through `tpl` and, thus, to be configured as string
   # @default -- Hard node and soft zone anti-affinity
-  # CUSTOM: {}
-  affinity: {}
-  #affinity: |
-  #  podAntiAffinity:
-  #    requiredDuringSchedulingIgnoredDuringExecution:
-  #      - labelSelector:
-  #          matchLabels:
-  #            {{- include "loki.gatewaySelectorLabels" . | nindent 10 }}
-  #        topologyKey: kubernetes.io/hostname
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - gateway
+          topologyKey: kubernetes.io/hostname
   # -- DNS config for gateway pods
   dnsConfig: {}
   # -- Node selector for gateway pods
@@ -1639,4 +1654,5 @@ sidecar:
     # Defaults to 66sec.
     watchClientTimeout: 60
     # -- Log level of the sidecar container.
+    # CUSTOM ERROR -> INFO
     logLevel: ERROR
