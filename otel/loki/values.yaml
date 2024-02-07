@@ -265,7 +265,7 @@ loki:
   runtimeConfig: {}
   # -- Check https://grafana.com/docs/loki/latest/configuration/#common_config for more info on how to provide a common configuration
   commonConfig:
-# CUSTOM /tmp/loki -> /var/loki
+  # CUSTOM /tmp/loki -> /var/loki
     path_prefix: /var/loki
     replication_factor: 1
 
@@ -362,7 +362,10 @@ loki:
   # -- Structured loki configuration, takes precedence over `loki.config`, `loki.schemaConfig`, `loki.storageConfig`
   structuredConfig: {}
   # -- Additional query scheduler config
-  query_scheduler: {}
+  # CUSTOM 
+  # query_scheduler: {}
+  query_scheduler:
+    max_outstanding_per_tenant: 1024
   # -- Additional storage config
   storage_config:
     hedging:
@@ -376,7 +379,10 @@ loki:
   analytics:
     reporting_enabled: false
   # --  Optional querier configuration
-  querier: {}
+  # CUSTOM
+  # querier: {}
+  querier:
+    max_concurrent: 2048
   # --  Optional ingester configuration
   ingester: {}
   # --  Optional index gateway configuration
