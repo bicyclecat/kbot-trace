@@ -14,13 +14,15 @@ import (
 
 	"github.com/hirosassa/zerodriver"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -29,8 +31,46 @@ var (
 	// MetricsHost exporter host:port
 	MetricsHost = os.Getenv("METRICS_HOST")
 	// TracesHost exporter
-	TraceHost = os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	traceEndpoint = os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	tracer        trace.Tracer
+	logger        = zerodriver.NewProductionLogger()
 )
+
+// Console Exporter, only for testing
+func newConsoleExporter() (sdktrace.SpanExporter, error) {
+	return stdouttrace.New()
+}
+
+// OTLP Exporter
+func newOTLPExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+	// Change default HTTPS -> HTTP
+	insecureOpt := otlptracehttp.WithInsecure()
+
+	// Update default OTLP reciver endpoint
+	endpointOpt := otlptracehttp.WithEndpoint(traceEndpoint)
+
+	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
+}
+
+func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
+	// Ensure default SDK resources and the required service name are set.
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("myapp"),
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(r),
+	)
+}
 
 // Initialize OpenTelemetry
 func initMetrics(ctx context.Context) {
@@ -41,15 +81,6 @@ func initMetrics(ctx context.Context) {
 		otlpmetricgrpc.WithEndpoint(MetricsHost),
 		otlpmetricgrpc.WithInsecure(),
 	)
-
-	// Create a new OTLP Trace gRPC exporter with the specified endpoint and options
-	traceExporter, _ := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(TraceHost), otlptracegrpc.WithInsecure())
-
-	// Create a new TracerProvider with the specified exporter
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(traceExporter),
-	)
-	otel.SetTracerProvider(tp)
 
 	// Define the resource with attributes that are common to all metrics.
 	// labels/tags/resources that are common to all metrics.
@@ -95,7 +126,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := zerodriver.NewProductionLogger()
 
 		kbot, err := telebot.NewBot(telebot.Settings{
 			URL:    "",
@@ -126,11 +156,10 @@ to quickly create a Cobra application.`,
 
 			payload := m.Message().Payload
 
-			// Create tracer
-			tr := otel.Tracer("telegram-bot-tracer")
+			ctx, span := tracer.Start(context.Background(), "kbot-message-processing")
 
-			// Create span for every text message
-			ctx, span := tr.Start(context.Background(), "telegram-bot-message-processing")
+			// Add kbot message to span
+			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
 			defer span.End()
 
 			pmetrics(ctx, payload)
@@ -170,6 +199,27 @@ to quickly create a Cobra application.`,
 func init() {
 	ctx := context.Background()
 	initMetrics(ctx)
+
+	// For testing to print out traces to the console
+	// exp, err := newConsoleExporter()
+	exp, err := newOTLPExporter(ctx)
+
+	if err != nil {
+		logger.Fatal().Str("Error", err.Error()).Msg("Failed to initialize exporter")
+		return
+	}
+
+	// Create a new tracer provider with a batch span processor and the given exporter.
+	tp := newTraceProvider(exp)
+
+	// Handle shutdown properly so nothing leaks.
+	defer func() { _ = tp.Shutdown(ctx) }()
+
+	otel.SetTracerProvider(tp)
+
+	// Finally, set the tracer that can be used for this package.
+	tracer = tp.Tracer("myapp")
+
 	rootCmd.AddCommand(kbotCmd)
 
 	// Here you will define your flags and configuration settings.
