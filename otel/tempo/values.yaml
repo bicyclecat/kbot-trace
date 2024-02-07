@@ -92,6 +92,10 @@ tempo:
           endpoint: 0.0.0.0:6831
         thrift_http:
           endpoint: 0.0.0.0:14268
+    otlp:
+      protocols:
+        http:
+          endpoint: "0.0.0.0:4318"
 
   securityContext: {}
     # allowPrivilegeEscalation: false

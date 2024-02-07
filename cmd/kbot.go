@@ -201,8 +201,8 @@ func init() {
 	initMetrics(ctx)
 
 	// For testing to print out traces to the console
-	// exp, err := newConsoleExporter()
-	exp, err := newOTLPExporter(ctx)
+	exp, err := newConsoleExporter()
+	//exp, err := newOTLPExporter(ctx)
 
 	if err != nil {
 		logger.Fatal().Str("Error", err.Error()).Msg("Failed to initialize exporter")
