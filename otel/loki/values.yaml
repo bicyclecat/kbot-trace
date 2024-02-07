@@ -362,10 +362,8 @@ loki:
   # -- Structured loki configuration, takes precedence over `loki.config`, `loki.schemaConfig`, `loki.storageConfig`
   structuredConfig: {}
   # -- Additional query scheduler config
-  # CUSTOM 
-  # query_scheduler: {}
-  query_scheduler:
-    max_outstanding_per_tenant: 1024
+  # CUSTOM undone
+  query_scheduler: {}
   # -- Additional storage config
   storage_config:
     hedging:
@@ -392,6 +390,7 @@ loki:
     # CUSTOM "" undone
     # scheduler_address: ""
     scheduler_address: '{{ include "loki.querySchedulerAddress" . }}'
+    max_outstanding_per_tenant: 1024
   frontend_worker:
     # CUSTOM "" undone
     #scheduler_address: ""
