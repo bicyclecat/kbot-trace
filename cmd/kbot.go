@@ -136,6 +136,7 @@ to quickly create a Cobra application.`,
 		trafficSignal["green"]["pin"] = 22
 
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
+			fmt.Println("Start of kbot.Handle")
 			ctx, span := tracer.Start(context.Background(), "kbot-message-processing")
 
 			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
@@ -145,6 +146,8 @@ to quickly create a Cobra application.`,
 			// Add kbot message to span
 			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
 			defer span.End()
+
+			fmt.Println("After adding kbot message to span")
 
 			pmetrics(ctx, payload)
 
