@@ -138,13 +138,13 @@ to quickly create a Cobra application.`,
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
 			ctx, span := tracer.Start(context.Background(), "kbot-message-processing")
 
-			// Add kbot message to span
-			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
-			defer span.End()
-
 			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
 
 			payload := m.Message().Payload
+
+			// Add kbot message to span
+			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
+			defer span.End()
 
 			pmetrics(ctx, payload)
 
