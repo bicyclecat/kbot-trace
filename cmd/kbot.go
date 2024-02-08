@@ -17,7 +17,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -36,70 +35,55 @@ var (
 	logger        = zerodriver.NewProductionLogger()
 )
 
-// Console Exporter, only for testing
-func newConsoleExporter() (sdktrace.SpanExporter, error) {
-	return stdouttrace.New()
-}
-
-// OTLP Exporter
-func newOTLPExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
-	// Change default HTTPS -> HTTP
-	insecureOpt := otlptracehttp.WithInsecure()
-
-	// Update default OTLP reciver endpoint
-	endpointOpt := otlptracehttp.WithEndpoint(traceEndpoint)
-
-	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
-}
-
-func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
-	// Ensure default SDK resources and the required service name are set.
-	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName("myapp"),
-		),
-	)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(r),
-	)
-}
-
 // Initialize OpenTelemetry
 func initMetrics(ctx context.Context) {
 
 	// Create a new OTLP Metric gRPC exporter with the specified endpoint and options
-	exporter, _ := otlpmetricgrpc.New(
+	metricExporter, _ := otlpmetricgrpc.New(
 		ctx,
 		otlpmetricgrpc.WithEndpoint(MetricsHost),
 		otlpmetricgrpc.WithInsecure(),
 	)
 
-	// Define the resource with attributes that are common to all metrics.
-	// labels/tags/resources that are common to all metrics.
-	resource := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceNameKey.String(fmt.Sprintf("kbot_%s", appVersion)),
-	)
-
-	// Create a new MeterProvider with the specified resource and reader
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(resource),
-		sdkmetric.WithReader(
-			// collects and exports metric data every 10 seconds.
-			sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(10*time.Second)),
+	otel.SetMeterProvider(
+		sdkmetric.NewMeterProvider(
+			sdkmetric.WithResource(
+				resource.NewWithAttributes(
+					semconv.SchemaURL,
+					semconv.ServiceNameKey.String(fmt.Sprintf("kbot_%s", appVersion)),
+				),
+			),
+			sdkmetric.WithReader(
+				// collects and exports metric data every 10 seconds.
+				sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(10*time.Second)),
+			),
 		),
 	)
 
-	// Set the global MeterProvider to the newly created MeterProvider
-	otel.SetMeterProvider(mp)
+	traceExporter, _ := otlptracehttp.New(
+		ctx,
+		otlptracehttp.WithEndpoint(traceEndpoint),
+		otlptracehttp.WithInsecure(),
+	)
+
+	// Create a new tracer provider with a batch span processor and the given exporter.
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(fmt.Sprintf("kbot_%s", appVersion)),
+			),
+		),
+	)
+
+	// Handle shutdown properly so nothing leaks.
+	defer func() { _ = tp.Shutdown(ctx) }()
+
+	otel.SetTracerProvider(tp)
+
+	// Finally, set the tracer that can be used for this package.
+	tracer = tp.Tracer("kbot-trace")
 
 }
 
@@ -152,15 +136,15 @@ to quickly create a Cobra application.`,
 		trafficSignal["green"]["pin"] = 22
 
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
-			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
-
-			payload := m.Message().Payload
-
 			ctx, span := tracer.Start(context.Background(), "kbot-message-processing")
 
 			// Add kbot message to span
 			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
 			defer span.End()
+
+			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
+
+			payload := m.Message().Payload
 
 			pmetrics(ctx, payload)
 
@@ -199,26 +183,6 @@ to quickly create a Cobra application.`,
 func init() {
 	ctx := context.Background()
 	initMetrics(ctx)
-
-	// For testing to print out traces to the console
-	exp, err := newConsoleExporter()
-	//exp, err := newOTLPExporter(ctx)
-
-	if err != nil {
-		logger.Fatal().Str("Error", err.Error()).Msg("Failed to initialize exporter")
-		return
-	}
-
-	// Create a new tracer provider with a batch span processor and the given exporter.
-	tp := newTraceProvider(exp)
-
-	// Handle shutdown properly so nothing leaks.
-	defer func() { _ = tp.Shutdown(ctx) }()
-
-	otel.SetTracerProvider(tp)
-
-	// Finally, set the tracer that can be used for this package.
-	tracer = tp.Tracer("myapp")
 
 	rootCmd.AddCommand(kbotCmd)
 
