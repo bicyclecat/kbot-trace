@@ -14,7 +14,6 @@ import (
 
 	"github.com/hirosassa/zerodriver"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -80,7 +79,7 @@ func initTracing(ctx context.Context) {
 		sdktrace.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
-				semconv.ServiceNameKey.String(fmt.Sprintf("kbot_%s", appVersion)),
+				semconv.ServiceName("kbot-trace"),
 			),
 		),
 	)
@@ -143,17 +142,14 @@ to quickly create a Cobra application.`,
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
 			fmt.Println("Start of kbot.Handle")
 			ctx := context.Background()
-			_, span := globalTracer.Start(cmd.Context(), "kbotCmd actions", trace.WithSpanKind(trace.SpanKindClient))
 
 			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
 
 			payload := m.Message().Payload
 
-			// Add kbot message to span
-			span.SetAttributes(attribute.String("telegram.message.text", payload))
-			defer span.End()
+			_, span := globalTracer.Start(cmd.Context(), "kbotCmd actions", trace.WithSpanKind(trace.SpanKindClient))
 
-			fmt.Println("After adding kbot message to span")
+			defer span.End()
 
 			pmetrics(ctx, payload)
 
