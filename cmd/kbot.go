@@ -31,7 +31,7 @@ var (
 	MetricsHost = os.Getenv("METRICS_HOST")
 	// TracesHost exporter
 	traceEndpoint = os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-	tracer        trace.Tracer
+	globalTracer  trace.Tracer
 	logger        = zerodriver.NewProductionLogger()
 )
 
@@ -59,12 +59,20 @@ func initMetrics(ctx context.Context) {
 			),
 		),
 	)
+}
 
-	traceExporter, _ := otlptracehttp.New(
+// Initialize OpenTelemetry Tracing
+func initTracing(ctx context.Context) {
+
+	traceExporter, err := otlptracehttp.New(
 		ctx,
 		otlptracehttp.WithEndpoint(traceEndpoint),
 		otlptracehttp.WithInsecure(),
 	)
+
+	if err != nil {
+		logger.Fatal().Str("Error", err.Error()).Msg("Cannot initialize Trace Exporter")
+	}
 
 	// Create a new tracer provider with a batch span processor and the given exporter.
 	tp := sdktrace.NewTracerProvider(
@@ -77,13 +85,10 @@ func initMetrics(ctx context.Context) {
 		),
 	)
 
-	// Handle shutdown properly so nothing leaks.
-	defer func() { _ = tp.Shutdown(ctx) }()
-
 	otel.SetTracerProvider(tp)
 
 	// Finally, set the tracer that can be used for this package.
-	tracer = tp.Tracer("kbot-trace")
+	globalTracer = tp.Tracer("kbot-trace")
 
 }
 
@@ -137,14 +142,15 @@ to quickly create a Cobra application.`,
 
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
 			fmt.Println("Start of kbot.Handle")
-			ctx, span := tracer.Start(context.Background(), "kbot-message-processing")
+			ctx := context.Background()
+			_, span := globalTracer.Start(cmd.Context(), "kbotCmd actions", trace.WithSpanKind(trace.SpanKindClient))
 
 			logger.Info().Str("Payload", m.Text()).Msg(m.Message().Payload)
 
 			payload := m.Message().Payload
 
 			// Add kbot message to span
-			span.SetAttributes(attribute.String("telegram.message.text", m.Text()))
+			span.SetAttributes(attribute.String("telegram.message.text", payload))
 			defer span.End()
 
 			fmt.Println("After adding kbot message to span")
@@ -184,8 +190,22 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
+
 	ctx := context.Background()
+
 	initMetrics(ctx)
+
+	initTracing(ctx)
+
+	ctx, span := globalTracer.Start(ctx, "Init: Parent")
+	defer span.End()
+	// Transfer context and parent span to kbotCmd
+	kbotCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		// Create child span for kbotCmd
+		_, span := globalTracer.Start(ctx, "kbotCmd", trace.WithSpanKind(trace.SpanKindClient))
+		ctx := trace.ContextWithSpan(context.Background(), span)
+		cmd.SetContext(ctx)
+	}
 
 	rootCmd.AddCommand(kbotCmd)
 
