@@ -18,14 +18,14 @@ spec:
         protocols:
           http:
             endpoint: "0.0.0.0:4318"
-            tls:
-              insecure: true
     exporters:
       logging:
       loki:
         endpoint: http://loki.monitoring.svc:3100/loki/api/v1/push
       otlp/jaeger:
-        endpoint: http://tempo.monitoring.svc:
+        endpoint: http://tempo.monitoring.svc:14250
+        tls:
+          insecure: true
       prometheus:
         endpoint: "0.0.0.0:8889"
     service:
