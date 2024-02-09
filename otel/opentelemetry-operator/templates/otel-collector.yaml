@@ -14,10 +14,18 @@ spec:
             endpoint: "0.0.0.0:4317"
           http:
             endpoint: "0.0.0.0:3030"
+      otlp/trace:
+        protocols:
+          http:
+            endpoint: "0.0.0.0:4318"
+            tls:
+              insecure: true
     exporters:
       logging:
       loki:
         endpoint: http://loki.monitoring.svc:3100/loki/api/v1/push
+      otlp/jaeger:
+        endpoint: http://tempo.monitoring.svc:
       prometheus:
         endpoint: "0.0.0.0:8889"
     service:
@@ -26,8 +34,8 @@ spec:
           receivers: [otlp]
           exporters: [loki]
         traces:
-          receivers: [otlp]
-          exporters: [logging]
+          receivers: [otlp/trace]
+          exporters: [logging, otlp/jaeger]
         metrics:
           receivers: [otlp]
           exporters: [logging, prometheus]

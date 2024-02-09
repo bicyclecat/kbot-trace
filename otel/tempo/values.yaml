@@ -82,10 +82,10 @@ tempo:
   # the receives all come from the OpenTelemetry collector.  more configuration information can
   # be found there: https://github.com/open-telemetry/opentelemetry-collector/tree/master/receiver
   receivers:
-    otlp:
+    jaeger:
       protocols:
-        http:
-          endpoint: "0.0.0.0:4318"
+        grpc:
+          endpoint: 0.0.0.0:14250
 
   securityContext: {}
     # allowPrivilegeEscalation: false
